@@ -1,0 +1,29 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local runtime/generated artifacts
+llmdocs.config.json
+llmdocs.evidence.json
+llmdocs.cache.json
+llmdocs.manifest.json
+.mcp.json
+.mcp.generated.json
+tmp/
+output/
+zip_context_ignore.md
+scripts/audit-public-surface.mjs
+
+# Local assistant docs/configs (not for public repo yet)
+AGENTS.md
+CLAUDE.md
+.claude/
+.claude.backup-*/
+.agents/
+.codex/
+.cursor/
+
+# Misc local noise
+.DS_Store
+*.log
