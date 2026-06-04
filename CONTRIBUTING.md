@@ -3,20 +3,21 @@
 ## Development setup
 
 ```bash
+node --version # use Node 20.19+ for the current dev toolchain
 npm install
 npm run build
 ```
 
 ## Source tree
 
-- `src/v2`: v2 context-ops engine, task model, MCP layer, host packs, workspace services.
+- `src/engine`: current task-bundle engine, task model, MCP layer, host packs, workspace services.
 - `src/commands`: public CLI commands plus hidden `internal` hook commands.
-- `src/core`, `src/providers`, `src/emitters`: legacy v1 generation/validation subsystem kept for compatibility.
+- `src/core`, `src/providers`, `src/emitters`: legacy generation/validation subsystem kept for compatibility.
 - `tests/unit`, `tests/integration`, `tests/e2e`: layered coverage for pure services, real temp repos, and full lifecycle flows.
 
 ## Local workflow
 
-Use the v2 surface when validating the new product path:
+Use the current surface when validating the new product path:
 
 ```bash
 node dist/index.js setup --dry-run
@@ -49,9 +50,9 @@ Use `npm run verify` for the default combined gate.
 
 - Keep changes focused and avoid unrelated refactors.
 - Add or update tests when behavior changes.
-- Do not do a big-bang rewrite of the legacy v1 subsystem.
-- Prefer additive changes in `src/v2/**` for new task-bundle workflows.
-- Keep v1 provider logic in `src/providers` and v1 generation/validation logic in `src/core`.
+- Do not do a big-bang rewrite of the legacy subsystem.
+- Prefer additive changes in `src/engine/**` for new task-bundle workflows.
+- Keep provider logic in `src/providers` and generation/validation logic in `src/core`.
 
 ## Commit and PR expectations
 

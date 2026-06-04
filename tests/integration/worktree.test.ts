@@ -10,7 +10,7 @@ import {
   initGitRepo,
   makeTempProject,
   writeProjectFile,
-} from '../helpers/v2-fixtures.js';
+} from '../helpers/test-fixtures.js';
 
 async function createMainWithLocalDocs(): Promise<string> {
   const mainRoot = await makeTempProject();

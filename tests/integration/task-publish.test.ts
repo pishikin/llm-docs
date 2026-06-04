@@ -4,8 +4,8 @@ import { simpleGit } from 'simple-git';
 import { describe, expect, it } from 'vitest';
 import { runSetup } from '../../src/commands/setup.js';
 import { runTaskPublish } from '../../src/commands/task-publish.js';
-import { createV2Runtime } from '../../src/v2/runtime.js';
-import type { PublishedTaskIndex, TaskPublishManifest } from '../../src/v2/types.js';
+import { createRuntime } from '../../src/engine/runtime.js';
+import type { PublishedTaskIndex, TaskPublishManifest } from '../../src/engine/types.js';
 import {
   commitProjectFile,
   createGitWorktree,
@@ -13,7 +13,7 @@ import {
   makeTempProject,
   readJsonFile,
   writeProjectFile,
-} from '../helpers/v2-fixtures.js';
+} from '../helpers/test-fixtures.js';
 
 async function createMainAndTaskWorktree(taskId = 'ABC-123') {
   const mainRoot = await makeTempProject();
@@ -28,7 +28,7 @@ async function createMainAndTaskWorktree(taskId = 'ABC-123') {
   } catch {
     await runSetup({ hosts: 'claude,codex' }, worktreeRoot);
   }
-  const runtime = await createV2Runtime(worktreeRoot, { createIfMissing: false });
+  const runtime = await createRuntime(worktreeRoot, { createIfMissing: false });
   await runtime.createTaskBundle({
     taskId,
     title: `Implement ${taskId}`,

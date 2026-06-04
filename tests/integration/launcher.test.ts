@@ -5,10 +5,10 @@ import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { runDoctor } from '../../src/commands/doctor.js';
 import { runSetup } from '../../src/commands/setup.js';
-import { loadConfigV2 } from '../../src/v2/config/load.js';
-import { renderCliLauncher } from '../../src/v2/workspace/launcher.js';
-import { resolveWorkspacePaths } from '../../src/v2/workspace/paths.js';
-import { initGitRepo, makeTempProject } from '../helpers/v2-fixtures.js';
+import { loadConfig } from '../../src/engine/config/load.js';
+import { renderCliLauncher } from '../../src/engine/workspace/launcher.js';
+import { resolveWorkspacePaths } from '../../src/engine/workspace/paths.js';
+import { initGitRepo, makeTempProject } from '../helpers/test-fixtures.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -199,7 +199,7 @@ describe('generated llm-docs launcher', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({ hosts: 'codex' }, projectRoot);
-    const config = await loadConfigV2(projectRoot);
+    const config = await loadConfig(projectRoot);
     const paths = resolveWorkspacePaths(projectRoot, config);
     await fs.writeFile(
       paths.cliLauncherPath,

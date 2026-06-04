@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
+import type { LlmDocsRuntime } from '../../engine/runtime.js';
+import { createRuntime } from '../../engine/runtime.js';
 import { getProjectRoot } from '../../utils/fs.js';
-import type { V2Runtime } from '../../v2/runtime.js';
-import { createV2Runtime } from '../../v2/runtime.js';
 
 export async function readStdinText(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -32,10 +32,10 @@ export function writeJsonResponse(value: unknown): void {
   process.stdout.write(`${JSON.stringify(value)}\n`);
 }
 
-export async function getRuntimeOrNull(startDir?: string): Promise<V2Runtime | null> {
+export async function getRuntimeOrNull(startDir?: string): Promise<LlmDocsRuntime | null> {
   try {
     const projectRoot = await getProjectRoot(startDir);
-    return await createV2Runtime(projectRoot, { createIfMissing: false });
+    return await createRuntime(projectRoot, { createIfMissing: false });
   } catch {
     return null;
   }

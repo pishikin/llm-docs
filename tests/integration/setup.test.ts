@@ -9,14 +9,14 @@ import { runSetup } from '../../src/commands/setup.js';
 import {
   renderLegacyAgentsRootDoc,
   renderLegacyClaudeRootDoc,
-} from '../../src/v2/templates/root-docs.js';
+} from '../../src/engine/templates/root-docs.js';
 import {
   createGitWorktree,
   initGitRepo,
   makeTempProject,
   readJsonFile,
   writeProjectFile,
-} from '../helpers/v2-fixtures.js';
+} from '../helpers/test-fixtures.js';
 
 const execFileAsync = promisify(execFile);
 

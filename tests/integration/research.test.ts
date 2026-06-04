@@ -7,15 +7,15 @@ import {
   runResearchStart,
 } from '../../src/commands/research.js';
 import { runSetup } from '../../src/commands/setup.js';
-import { createV2Runtime } from '../../src/v2/runtime.js';
-import { initGitRepo, makeTempProject } from '../helpers/v2-fixtures.js';
+import { createRuntime } from '../../src/engine/runtime.js';
+import { initGitRepo, makeTempProject } from '../helpers/test-fixtures.js';
 
 describe('research command', () => {
   it('maintains one markdown research file per active task topic', async () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',

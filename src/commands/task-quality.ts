@@ -1,7 +1,7 @@
 import { Command } from 'commander';
+import { createRuntime } from '../engine/runtime.js';
+import type { TaskQualityFinding, TaskQualityReport } from '../engine/types.js';
 import { getProjectRoot } from '../utils/fs.js';
-import { createV2Runtime } from '../v2/runtime.js';
-import type { TaskQualityFinding, TaskQualityReport } from '../v2/types.js';
 
 interface TaskQualityOptions {
   json?: boolean;
@@ -62,7 +62,7 @@ export async function runTaskQuality(
   startDir?: string,
 ): Promise<TaskQualityReport> {
   const projectRoot = await getProjectRoot(startDir);
-  const runtime = await createV2Runtime(projectRoot);
+  const runtime = await createRuntime(projectRoot);
   const report = await runtime.buildTaskQualityReport(taskId);
 
   if (options.json) {

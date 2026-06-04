@@ -3,15 +3,15 @@ import path from 'node:path';
 import { simpleGit } from 'simple-git';
 import { describe, expect, it } from 'vitest';
 import { runSetup } from '../../src/commands/setup.js';
-import { createV2Runtime } from '../../src/v2/runtime.js';
-import { readTaskRegistry } from '../../src/v2/task/registry.js';
-import type { PublishedTaskIndex } from '../../src/v2/types.js';
+import { createRuntime } from '../../src/engine/runtime.js';
+import { readTaskRegistry } from '../../src/engine/task/registry.js';
+import type { PublishedTaskIndex } from '../../src/engine/types.js';
 import {
   createGitWorktree,
   initGitRepo,
   makeTempProject,
   readJsonFile,
-} from '../helpers/v2-fixtures.js';
+} from '../helpers/test-fixtures.js';
 
 async function createMainAndTaskWorktree(taskId = 'ABC-123') {
   const mainRoot = await makeTempProject();
@@ -22,7 +22,7 @@ async function createMainAndTaskWorktree(taskId = 'ABC-123') {
 
   const worktreeRoot = await createGitWorktree(mainRoot, `feature/${taskId}`);
   await runSetup({ hosts: 'claude,codex' }, worktreeRoot);
-  const runtime = await createV2Runtime(worktreeRoot, { createIfMissing: false });
+  const runtime = await createRuntime(worktreeRoot, { createIfMissing: false });
   await runtime.createTaskBundle({
     taskId,
     title: `Implement ${taskId}`,

@@ -1,14 +1,14 @@
 import { Command } from 'commander';
-import { getProjectRoot } from '../utils/fs.js';
-import { createV2Runtime } from '../v2/runtime.js';
-import { activeTaskFileRelativePath, writeActiveTaskFile } from '../v2/task/active.js';
-import { normalizeTaskId } from '../v2/task/id.js';
-import { setActiveTask } from '../v2/task/registry.js';
+import { createRuntime } from '../engine/runtime.js';
+import { activeTaskFileRelativePath, writeActiveTaskFile } from '../engine/task/active.js';
+import { normalizeTaskId } from '../engine/task/id.js';
+import { setActiveTask } from '../engine/task/registry.js';
 import {
   bindCodexSessionToTask,
   codexSessionBindingRelativePath,
   resolveCodexSessionIdFromEnv,
-} from '../v2/task/session-binding.js';
+} from '../engine/task/session-binding.js';
+import { getProjectRoot } from '../utils/fs.js';
 import { pauseTaskContext, printTaskPauseResult } from './task-pause.js';
 
 const taskUseCommand = new Command('use')
@@ -45,7 +45,7 @@ const taskUseCommand = new Command('use')
       }
 
       const projectRoot = await getProjectRoot();
-      const runtime = await createV2Runtime(projectRoot);
+      const runtime = await createRuntime(projectRoot);
       const normalizedTaskId = normalizeTaskId(taskId);
       const resolved = await runtime.resolveActiveTask({ taskId: normalizedTaskId });
 

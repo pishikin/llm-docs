@@ -1,13 +1,13 @@
 import { Command } from 'commander';
-import { getProjectRoot } from '../utils/fs.js';
-import { createV2Runtime } from '../v2/runtime.js';
+import { createRuntime } from '../engine/runtime.js';
 import {
   clearCodexSessionBinding,
   codexSessionBindingRelativePath,
   readCodexSessionBinding,
   resolveCodexSessionIdFromEnv,
-} from '../v2/task/session-binding.js';
-import type { ActiveResolutionPolicy, ActiveTaskResolutionTrace } from '../v2/types.js';
+} from '../engine/task/session-binding.js';
+import type { ActiveResolutionPolicy, ActiveTaskResolutionTrace } from '../engine/types.js';
+import { getProjectRoot } from '../utils/fs.js';
 
 interface TaskActiveOptions {
   sessionId?: string;
@@ -62,7 +62,7 @@ const taskActiveCommand = new Command('active')
   .option('--json', 'print JSON output')
   .action(async (options: TaskActiveOptions) => {
     const projectRoot = await getProjectRoot();
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
     const sessionId = options.sessionId ?? resolveCodexSessionIdFromEnv();
 
     if (options.clearSession) {

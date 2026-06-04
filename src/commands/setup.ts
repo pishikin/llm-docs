@@ -1,20 +1,20 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Command } from 'commander';
-import { getProjectRoot, normalizeRelativePath } from '../utils/fs.js';
-import { loadOrMigrateConfig, writeConfigV2 } from '../v2/config/load.js';
-import { buildDefaultRegistryPath } from '../v2/config/migrate.js';
+import { loadOrMigrateConfig, writeConfig } from '../engine/config/load.js';
+import { buildDefaultRegistryPath } from '../engine/config/migrate.js';
 import type {
-  LlmDocsConfigV2,
+  LlmDocsConfig,
   WorkspaceBootstrapReport,
   WorkspaceLegacyAliasHit,
-} from '../v2/types.js';
+} from '../engine/types.js';
 import {
   resolveArchiveDirCandidates,
   resolvePromptsDirCandidates,
-} from '../v2/workspace/aliases.js';
-import { bootstrapWorkspace } from '../v2/workspace/bootstrap.js';
-import { resolveWorkspacePaths } from '../v2/workspace/paths.js';
+} from '../engine/workspace/aliases.js';
+import { bootstrapWorkspace } from '../engine/workspace/bootstrap.js';
+import { resolveWorkspacePaths } from '../engine/workspace/paths.js';
+import { getProjectRoot, normalizeRelativePath } from '../utils/fs.js';
 
 type HostName = 'claude' | 'codex' | 'cursor';
 
@@ -48,7 +48,7 @@ export interface SetupCommandResult {
   migrationSummary: string[];
   bootstrapReport: WorkspaceBootstrapReport;
   aliasMigrations: AliasMigration[];
-  config: LlmDocsConfigV2;
+  config: LlmDocsConfig;
 }
 
 function parseHostsOption(value: string | undefined): HostName[] | undefined {
@@ -76,9 +76,9 @@ function parseHostsOption(value: string | undefined): HostName[] | undefined {
 }
 
 function applyWorkspaceRootOverride(
-  config: LlmDocsConfigV2,
+  config: LlmDocsConfig,
   workspaceRoot: string | undefined,
-): LlmDocsConfigV2 {
+): LlmDocsConfig {
   if (!workspaceRoot) {
     return config;
   }
@@ -99,9 +99,9 @@ function applyWorkspaceRootOverride(
 }
 
 function applyHostSelection(
-  config: LlmDocsConfigV2,
+  config: LlmDocsConfig,
   selectedHosts: HostName[] | undefined,
-): LlmDocsConfigV2 {
+): LlmDocsConfig {
   if (!selectedHosts) {
     return config;
   }
@@ -129,17 +129,17 @@ function applyHostSelection(
 
 async function maybeWriteConfig(
   projectRoot: string,
-  nextConfig: LlmDocsConfigV2,
+  nextConfig: LlmDocsConfig,
   options: SetupCommandOptions,
   alreadyWroteConfig: boolean,
-  initialConfig: LlmDocsConfigV2,
+  initialConfig: LlmDocsConfig,
 ): Promise<boolean> {
   const initialJson = JSON.stringify(initialConfig);
   const nextJson = JSON.stringify(nextConfig);
   const changed = initialJson !== nextJson;
 
   if (changed && !options.dryRun) {
-    await writeConfigV2(projectRoot, nextConfig);
+    await writeConfig(projectRoot, nextConfig);
   }
 
   return alreadyWroteConfig || (changed && !options.dryRun);
@@ -186,7 +186,7 @@ async function migrateAliasPath(
 
 async function migrateLegacyAliases(
   projectRoot: string,
-  config: LlmDocsConfigV2,
+  config: LlmDocsConfig,
   options: SetupCommandOptions,
 ): Promise<AliasMigration[]> {
   if (!options.migrateSpellingFixes) {
@@ -219,10 +219,10 @@ async function migrateLegacyAliases(
 function formatConfigStatus(result: SetupCommandResult): string {
   const statusLabel =
     result.configStatus === 'created'
-      ? 'Created new v2 config'
+      ? 'Created new config'
       : result.configStatus === 'migrated'
-        ? 'Migrated legacy config to v2'
-        : 'Loaded existing v2 config';
+        ? 'Migrated legacy config'
+        : 'Loaded existing config';
 
   return `${statusLabel}: ${normalizeRelativePath(path.relative(result.projectRoot, result.configPath))}`;
 }
@@ -333,7 +333,7 @@ export async function runSetup(
 }
 
 const command = new Command('setup')
-  .description('Bootstrap llm-docs v2 workspace, host packs, and optional git hooks')
+  .description('Bootstrap llm-docs workspace, host packs, and optional git hooks')
   .option('--hosts <hosts>', 'hosts to install (claude,codex,cursor)')
   .option('--workspace-root <path>', 'override the workspace root directory')
   .option('--enable-git-hooks', 'install project-local git hooks')

@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import type { Command } from 'commander';
-import { readTaskMeta } from '../../v2/task/meta.js';
-import type { ActiveResolutionPolicy } from '../../v2/types.js';
+import { readTaskMeta } from '../../engine/task/meta.js';
+import type { ActiveResolutionPolicy } from '../../engine/types.js';
 import { getRuntimeOrNull, writeTextResponse } from './common.js';
 import { markTaskStale } from './hooks.js';
 

@@ -1,8 +1,8 @@
 import { Command } from 'commander';
+import { type ContextStatusReport, buildContextStatusReport } from '../engine/context/status.js';
+import { createRuntime } from '../engine/runtime.js';
+import { resolveCodexSessionIdFromEnv } from '../engine/task/session-binding.js';
 import { getProjectRoot } from '../utils/fs.js';
-import { type ContextStatusReport, buildContextStatusReport } from '../v2/context/status.js';
-import { createV2Runtime } from '../v2/runtime.js';
-import { resolveCodexSessionIdFromEnv } from '../v2/task/session-binding.js';
 
 export interface ContextStatusCommandOptions {
   json?: boolean;
@@ -76,7 +76,7 @@ export async function runContextStatus(
   startDir?: string,
 ): Promise<ContextStatusReport> {
   const projectRoot = await getProjectRoot(startDir);
-  const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+  const runtime = await createRuntime(projectRoot, { createIfMissing: false });
   const sessionId = _options.sessionId ?? resolveCodexSessionIdFromEnv();
   const activeTask = await runtime.resolveActiveTask({
     preferRegistryActive: true,

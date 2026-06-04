@@ -1,0 +1,34 @@
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { LlmDocsRuntime } from '../../runtime.js';
+import { structuredResponse } from '../common.js';
+import { saveContextCheckpointInputSchema, saveContextCheckpointOutputSchema } from '../schemas.js';
+
+export function registerSaveContextCheckpointTool(
+  server: McpServer,
+  runtime: LlmDocsRuntime,
+): void {
+  server.registerTool(
+    'llmdocs.save_context_checkpoint',
+    {
+      description:
+        'Save or refresh the active task working context checkpoint in context.md and state.json.',
+      inputSchema: saveContextCheckpointInputSchema,
+      outputSchema: saveContextCheckpointOutputSchema,
+    },
+    async (input) => {
+      const taskId =
+        input.taskId ??
+        (
+          await runtime.resolveActiveTask({
+            preferRegistryActive: true,
+            codexSessionId: input.codexSessionId,
+          })
+        )?.taskId;
+      if (!taskId) {
+        throw new Error('Cannot save checkpoint because no active task is resolved.');
+      }
+
+      return structuredResponse(await runtime.saveContextCheckpoint(taskId, input));
+    },
+  );
+}

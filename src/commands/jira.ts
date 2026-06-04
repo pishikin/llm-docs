@@ -1,16 +1,16 @@
 import { password } from '@inquirer/prompts';
 import { Command } from 'commander';
-import { getProjectRoot } from '../utils/fs.js';
 import {
   jiraProfilesPath,
   readJiraAuthProfiles,
   removeJiraAuthProfile,
   saveJiraAuthProfile,
-} from '../v2/integrations/jira/auth.js';
-import { fetchJiraCurrentUser, fetchJiraServerInfo } from '../v2/integrations/jira/client.js';
-import { resolveJiraClientConfig } from '../v2/integrations/jira/config.js';
-import { pullJiraIssue } from '../v2/integrations/jira/pull.js';
-import { createV2Runtime } from '../v2/runtime.js';
+} from '../engine/integrations/jira/auth.js';
+import { fetchJiraCurrentUser, fetchJiraServerInfo } from '../engine/integrations/jira/client.js';
+import { resolveJiraClientConfig } from '../engine/integrations/jira/config.js';
+import { pullJiraIssue } from '../engine/integrations/jira/pull.js';
+import { createRuntime } from '../engine/runtime.js';
+import { getProjectRoot } from '../utils/fs.js';
 
 interface JiraDoctorOptions {
   profile?: string;
@@ -47,7 +47,7 @@ const jiraDoctorCommand = new Command('doctor')
   .option('--json', 'print JSON output')
   .action(async (options: JiraDoctorOptions) => {
     const projectRoot = await getProjectRoot();
-    const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+    const runtime = await createRuntime(projectRoot, { createIfMissing: false });
     const client = await resolveJiraClientConfig(runtime.config, { profile: options.profile });
     const [serverInfo, currentUser] = await Promise.all([
       fetchJiraServerInfo(client),
@@ -83,7 +83,7 @@ const jiraPullCommand = new Command('pull')
   .option('--json', 'print JSON output')
   .action(async (issueKey: string, options: JiraPullOptions) => {
     const projectRoot = await getProjectRoot();
-    const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+    const runtime = await createRuntime(projectRoot, { createIfMissing: false });
     const result = await pullJiraIssue(runtime.config, runtime.paths, issueKey, {
       attachments: options.attachments,
       force: options.force,

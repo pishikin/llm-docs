@@ -1,24 +1,24 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import type { Command } from 'commander';
-import type { V2Runtime } from '../../v2/runtime.js';
+import type { LlmDocsRuntime } from '../../engine/runtime.js';
 import {
   markPromptSeen,
   saveCodexAutosaveSnapshot,
   shouldRequireContextCheckpoint,
   watchCodexTranscript,
-} from '../../v2/task/autosave.js';
-import { protectedBaseBranches } from '../../v2/task/branches.js';
-import { updateTaskMeta } from '../../v2/task/meta.js';
-import { syncRegistryFromMeta } from '../../v2/task/registry.js';
+} from '../../engine/task/autosave.js';
+import { protectedBaseBranches } from '../../engine/task/branches.js';
+import { updateTaskMeta } from '../../engine/task/meta.js';
+import { syncRegistryFromMeta } from '../../engine/task/registry.js';
 import {
   type CodexSessionBindingSource,
   codexSessionBindingRelativePath,
   readCodexSessionBinding,
   rememberCodexUserPrompt,
   setCodexPendingResume,
-} from '../../v2/task/session-binding.js';
-import type { ActiveResolutionPolicy, ActiveTaskResolution, TaskMeta } from '../../v2/types.js';
+} from '../../engine/task/session-binding.js';
+import type { ActiveResolutionPolicy, ActiveTaskResolution, TaskMeta } from '../../engine/types.js';
 import { getRuntimeOrNull, readJsonStdin, writeJsonResponse, writeTextResponse } from './common.js';
 
 const CODEX_HOOK_ACTIVE_RESOLUTION_POLICY: ActiveResolutionPolicy = {
@@ -78,7 +78,7 @@ function formatShortTaskCard(meta: TaskMeta): string {
   ].join('\n');
 }
 
-function formatCodexSessionLine(runtime: V2Runtime, payload: HookPayload): string | null {
+function formatCodexSessionLine(runtime: LlmDocsRuntime, payload: HookPayload): string | null {
   if (!payload.session_id) {
     return null;
   }
@@ -177,7 +177,7 @@ function writeCodexStopBlock(reason: string): void {
 }
 
 async function resolveActiveTaskMeta(
-  runtime: V2Runtime,
+  runtime: LlmDocsRuntime,
   payload: HookPayload = {},
   host?: HookHost,
 ): Promise<{
@@ -205,7 +205,7 @@ function bindingSourceForResolution(resolution: ActiveTaskResolution): CodexSess
   return resolution.resolvedBy === 'explicit' ? 'explicit-user-intent' : resolution.resolvedBy;
 }
 
-function startCodexWatcher(runtime: V2Runtime, taskId: string, payload: HookPayload): void {
+function startCodexWatcher(runtime: LlmDocsRuntime, taskId: string, payload: HookPayload): void {
   if (!payload.session_id || !payload.transcript_path || !process.argv[1]) {
     return;
   }
@@ -234,7 +234,7 @@ function startCodexWatcher(runtime: V2Runtime, taskId: string, payload: HookPayl
 }
 
 async function saveCodexSnapshotIfPossible(
-  runtime: V2Runtime,
+  runtime: LlmDocsRuntime,
   taskId: string,
   payload: HookPayload,
 ): Promise<void> {
@@ -478,12 +478,12 @@ export async function handlePreCompact(options: { host?: HookHost } = {}): Promi
 }
 
 export async function markTaskStale(
-  runtime: V2Runtime,
+  runtime: LlmDocsRuntime,
   taskId: string,
   reason: string,
   updateBranch = true,
 ): Promise<TaskMeta> {
-  const gitFacts = await import('../../v2/git/status.js').then(({ buildGitFacts }) =>
+  const gitFacts = await import('../../engine/git/status.js').then(({ buildGitFacts }) =>
     buildGitFacts(runtime.projectRoot, { config: runtime.config }),
   );
   const meta = await updateTaskMeta(runtime.paths, taskId, (current) => ({

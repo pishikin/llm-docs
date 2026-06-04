@@ -1,13 +1,13 @@
 import path from 'node:path';
 import { Command } from 'commander';
-import { getProjectRoot } from '../utils/fs.js';
-import { createV2Runtime } from '../v2/runtime.js';
+import { createRuntime } from '../engine/runtime.js';
 import type {
   TaskClosePlan,
   TaskCloseReport,
   TaskPublishArtifactPolicy,
   TaskPublishConflictPolicy,
-} from '../v2/types.js';
+} from '../engine/types.js';
+import { getProjectRoot } from '../utils/fs.js';
 
 export interface TaskCloseCommandOptions {
   dryRun?: boolean;
@@ -83,7 +83,7 @@ const taskCloseCommand = new Command('close')
   .option('--include-artifacts <policy>', 'copy, manifest-only, or none', 'copy')
   .action(async (taskId: string | undefined, options: TaskCloseCommandOptions) => {
     const projectRoot = await getProjectRoot();
-    const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+    const runtime = await createRuntime(projectRoot, { createIfMissing: false });
     const input = {
       taskId,
       dest: options.dest,

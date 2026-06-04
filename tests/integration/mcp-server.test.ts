@@ -6,7 +6,7 @@ import {
   createMcpClient,
   initGitRepo,
   makeTempProject,
-} from '../helpers/v2-fixtures.js';
+} from '../helpers/test-fixtures.js';
 
 describe('MCP stdio server', () => {
   const transports: { close: () => Promise<void> }[] = [];

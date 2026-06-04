@@ -152,6 +152,7 @@ An npm package is not published yet. For now, run the CLI from a checked-out
 repository:
 
 ```bash
+node --version # use Node 20.19+ for the current dev toolchain
 git clone https://github.com/pishikin/llm-docs.git
 cd llm-docs
 npm install

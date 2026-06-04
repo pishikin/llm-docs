@@ -1,7 +1,7 @@
 import { Command } from 'commander';
+import { createRuntime } from '../engine/runtime.js';
+import type { ActiveTasksMigrationReport } from '../engine/types.js';
 import { getProjectRoot } from '../utils/fs.js';
-import { createV2Runtime } from '../v2/runtime.js';
-import type { ActiveTasksMigrationReport } from '../v2/types.js';
 
 interface WorkspaceMigrateActiveTasksOptions {
   dryRun?: boolean;
@@ -52,7 +52,7 @@ const workspaceMigrateActiveTasksCommand = new Command('migrate-active-tasks')
   .option('--json', 'print migration plan/report as JSON')
   .action(async (options: WorkspaceMigrateActiveTasksOptions) => {
     const projectRoot = await getProjectRoot();
-    const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+    const runtime = await createRuntime(projectRoot, { createIfMissing: false });
     const report = options.dryRun
       ? await runtime.prepareActiveTasksMigration({ dryRun: true })
       : await runtime.applyActiveTasksMigration({ dryRun: false });

@@ -1,12 +1,12 @@
 import { Command } from 'commander';
-import { getProjectRoot } from '../utils/fs.js';
 import {
   type ResearchFileResult,
   checkpointResearchFile,
   compactResearchFile,
   startResearchFile,
-} from '../v2/research/single-file.js';
-import { createV2Runtime } from '../v2/runtime.js';
+} from '../engine/research/single-file.js';
+import { createRuntime } from '../engine/runtime.js';
+import { getProjectRoot } from '../utils/fs.js';
 
 function collect(value: string, previous: string[] = []): string[] {
   return [...previous, value];
@@ -14,7 +14,7 @@ function collect(value: string, previous: string[] = []): string[] {
 
 async function resolveTaskId(taskId: string | undefined, startDir?: string) {
   const projectRoot = await getProjectRoot(startDir);
-  const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+  const runtime = await createRuntime(projectRoot, { createIfMissing: false });
   const resolvedTaskId =
     taskId ?? (await runtime.resolveActiveTask({ preferRegistryActive: true }))?.taskId;
 

@@ -1,12 +1,12 @@
 import { Command } from 'commander';
 import { simpleGit } from 'simple-git';
-import { getProjectRoot } from '../utils/fs.js';
 import type {
   WorktreeSeedConflictPolicy,
   WorktreeSeedInput,
   WorktreeSeedReport,
-} from '../v2/types.js';
-import { applyWorktreeSeed, prepareWorktreeSeed } from '../v2/worktree/seed.js';
+} from '../engine/types.js';
+import { applyWorktreeSeed, prepareWorktreeSeed } from '../engine/worktree/seed.js';
+import { getProjectRoot } from '../utils/fs.js';
 
 export interface WorktreeSeedCommandOptions {
   from?: string;

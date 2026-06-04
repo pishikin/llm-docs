@@ -11,15 +11,15 @@ import {
 } from '../../src/commands/internal/git.js';
 import { markTaskStale } from '../../src/commands/internal/hooks.js';
 import { runSetup } from '../../src/commands/setup.js';
-import { createV2Runtime } from '../../src/v2/runtime.js';
-import { bindCodexSessionToTask } from '../../src/v2/task/session-binding.js';
+import { createRuntime } from '../../src/engine/runtime.js';
+import { bindCodexSessionToTask } from '../../src/engine/task/session-binding.js';
 import {
   checkoutNewBranch,
   commitProjectFile,
   ensureBuiltCli,
   initGitRepo,
   makeTempProject,
-} from '../helpers/v2-fixtures.js';
+} from '../helpers/test-fixtures.js';
 
 const repoRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
 
@@ -69,7 +69,7 @@ describe('internal git commands', () => {
       await initGitRepo(projectRoot);
       await checkoutNewBranch(projectRoot, 'feature/ABC-123-prefix');
       await runSetup({}, projectRoot);
-      const runtime = await createV2Runtime(projectRoot);
+      const runtime = await createRuntime(projectRoot);
       await runtime.createTaskBundle({
         taskId: 'ABC-123',
         title: 'Prefix commit message',
@@ -97,7 +97,7 @@ describe('internal git commands', () => {
     try {
       await initGitRepo(projectRoot, 'main');
       await runSetup({}, projectRoot);
-      const runtime = await createV2Runtime(projectRoot);
+      const runtime = await createRuntime(projectRoot);
       await runtime.createTaskBundle({
         taskId: 'DOCS-123',
         title: 'Protected branch task',
@@ -124,7 +124,7 @@ describe('internal git commands', () => {
       await initGitRepo(projectRoot);
       await checkoutNewBranch(projectRoot, 'feature/ABC-123-stale');
       await runSetup({}, projectRoot);
-      const runtime = await createV2Runtime(projectRoot);
+      const runtime = await createRuntime(projectRoot);
       await runtime.createTaskBundle({
         taskId: 'ABC-123',
         title: 'Stale push',
@@ -170,7 +170,7 @@ describe('internal host hook commands', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot, 'main');
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -240,7 +240,7 @@ describe('internal host hook commands', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -285,7 +285,7 @@ describe('internal host hook commands', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -337,7 +337,7 @@ describe('internal host hook commands', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -388,7 +388,7 @@ describe('internal host hook commands', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
     const transcriptDir = await fs.mkdtemp(path.join(os.tmpdir(), 'llmdocs-transcript-'));
     const transcriptPath = path.join(transcriptDir, 'large-transcript.jsonl');
 
@@ -445,7 +445,7 @@ describe('internal host hook commands', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -472,7 +472,7 @@ describe('internal host hook commands', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
     const transcriptPath = path.join(projectRoot, 'transcript.jsonl');
 
     await runtime.createTaskBundle({
@@ -513,7 +513,7 @@ describe('internal host hook commands', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'TASK-A',
@@ -553,7 +553,7 @@ describe('internal host hook commands', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',

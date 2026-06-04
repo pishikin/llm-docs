@@ -1,7 +1,7 @@
 import { Command } from 'commander';
+import { startMcpServer } from '../engine/mcp/server.js';
+import { createRuntime } from '../engine/runtime.js';
 import { getProjectRoot } from '../utils/fs.js';
-import { startMcpServer } from '../v2/mcp/server.js';
-import { createV2Runtime } from '../v2/runtime.js';
 
 export interface ServerCommandOptions {
   transport: string;
@@ -9,13 +9,11 @@ export interface ServerCommandOptions {
 
 export async function runServer(options: ServerCommandOptions, startDir?: string): Promise<void> {
   if (options.transport !== 'stdio') {
-    throw new Error(
-      `Unsupported transport: ${options.transport}. Only stdio is supported in v2.0.`,
-    );
+    throw new Error(`Unsupported transport: ${options.transport}. Only stdio is supported.`);
   }
 
   const projectRoot = await getProjectRoot(startDir);
-  const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+  const runtime = await createRuntime(projectRoot, { createIfMissing: false });
   await startMcpServer(runtime);
 }
 

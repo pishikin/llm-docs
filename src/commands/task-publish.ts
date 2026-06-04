@@ -1,14 +1,14 @@
 import path from 'node:path';
 import { Command } from 'commander';
-import { getProjectRoot } from '../utils/fs.js';
-import { createV2Runtime } from '../v2/runtime.js';
+import { createRuntime } from '../engine/runtime.js';
 import type {
   TaskPublishArtifactPolicy,
   TaskPublishConflictPolicy,
   TaskPublishPlan,
   TaskPublishPrepareInput,
   TaskPublishReport,
-} from '../v2/types.js';
+} from '../engine/types.js';
+import { getProjectRoot } from '../utils/fs.js';
 
 export interface TaskPublishCommandOptions {
   dryRun?: boolean;
@@ -98,7 +98,7 @@ export async function runTaskPublish(
   startDir?: string,
 ) {
   const projectRoot = await getProjectRoot(startDir);
-  const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+  const runtime = await createRuntime(projectRoot, { createIfMissing: false });
   const input = toInput(taskId, options);
 
   if (options.dryRun) {

@@ -3,16 +3,16 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runDoctor } from '../../src/commands/doctor.js';
 import { runSetup } from '../../src/commands/setup.js';
-import { loadConfigV2, writeConfigV2 } from '../../src/v2/config/load.js';
-import { createDefaultConfigV2 } from '../../src/v2/config/migrate.js';
-import { createV2Runtime } from '../../src/v2/runtime.js';
-import { readTaskRegistry, writeTaskRegistry } from '../../src/v2/task/registry.js';
-import { readTaskState, writeTaskState } from '../../src/v2/task/state.js';
-import { bootstrapWorkspace } from '../../src/v2/workspace/bootstrap.js';
-import { initGitRepo, makeTempProject, writeProjectFile } from '../helpers/v2-fixtures.js';
+import { loadConfig, writeConfig } from '../../src/engine/config/load.js';
+import { createDefaultConfig } from '../../src/engine/config/migrate.js';
+import { createRuntime } from '../../src/engine/runtime.js';
+import { readTaskRegistry, writeTaskRegistry } from '../../src/engine/task/registry.js';
+import { readTaskState, writeTaskState } from '../../src/engine/task/state.js';
+import { bootstrapWorkspace } from '../../src/engine/workspace/bootstrap.js';
+import { initGitRepo, makeTempProject, writeProjectFile } from '../helpers/test-fixtures.js';
 
 describe('doctor command', () => {
-  it('reports a healthy v2 workspace', async () => {
+  it('reports a healthy workspace', async () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({ hosts: 'claude,codex', enableGitHooks: true }, projectRoot);
@@ -28,7 +28,7 @@ describe('doctor command', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -123,7 +123,7 @@ describe('doctor command', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot, 'main');
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -148,7 +148,7 @@ describe('doctor command', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot, 'feature/ABC-123-stale');
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -219,7 +219,7 @@ describe('doctor command', () => {
   it('warns when legacy active tasks and published task docs diverge', async () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
-    const baseConfig = await createDefaultConfigV2(projectRoot);
+    const baseConfig = await createDefaultConfig(projectRoot);
     const config = {
       ...baseConfig,
       workspace: {
@@ -232,9 +232,9 @@ describe('doctor command', () => {
       },
     };
 
-    await writeConfigV2(projectRoot, config);
+    await writeConfig(projectRoot, config);
     await bootstrapWorkspace(projectRoot, config);
-    const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+    const runtime = await createRuntime(projectRoot, { createIfMissing: false });
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
       title: 'Legacy divergence',
@@ -269,16 +269,16 @@ describe('doctor command', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const config = await loadConfigV2(projectRoot);
+    const config = await loadConfig(projectRoot);
 
-    await writeConfigV2(projectRoot, {
+    await writeConfig(projectRoot, {
       ...config,
       contextBudget: {
         ...config.contextBudget,
         activeContextMaxBytes: 1,
       },
     });
-    const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+    const runtime = await createRuntime(projectRoot, { createIfMissing: false });
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
       title: 'Context budget warning',
@@ -302,16 +302,16 @@ describe('doctor command', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot, 'feature/ABC-123-context-budget');
     await runSetup({}, projectRoot);
-    const config = await loadConfigV2(projectRoot);
+    const config = await loadConfig(projectRoot);
 
-    await writeConfigV2(projectRoot, {
+    await writeConfig(projectRoot, {
       ...config,
       contextBudget: {
         ...config.contextBudget,
         activeContextMaxBytes: 1,
       },
     });
-    const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+    const runtime = await createRuntime(projectRoot, { createIfMissing: false });
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
       title: 'Branch mapped budget warning',

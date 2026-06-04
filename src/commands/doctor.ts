@@ -1,7 +1,7 @@
 import { Command } from 'commander';
+import type { DoctorCheck, DoctorReport } from '../engine/types.js';
+import { buildDoctorReport } from '../engine/workspace/health.js';
 import { getProjectRoot } from '../utils/fs.js';
-import type { DoctorCheck, DoctorReport } from '../v2/types.js';
-import { buildDoctorReport } from '../v2/workspace/health.js';
 
 export interface DoctorCommandOptions {
   json?: boolean;
@@ -64,10 +64,10 @@ export async function runDoctor(
 }
 
 const command = new Command('doctor')
-  .description('Validate llm-docs v2 config, workspace, registry, and host health')
+  .description('Validate llm-docs config, workspace, registry, and host health')
   .option('--json', 'print the report as JSON')
   .option('--strict', 'treat warnings as non-zero exit status')
-  .option('--include-legacy', 'include legacy v1 compatibility checks')
+  .option('--include-legacy', 'include legacy compatibility checks')
   .action(async (options: DoctorCommandOptions) => {
     const result = await runDoctor(options);
     if (options.json) {

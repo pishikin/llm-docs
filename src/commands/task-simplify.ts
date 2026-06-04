@@ -1,8 +1,8 @@
 import { Command } from 'commander';
+import { createRuntime } from '../engine/runtime.js';
+import { normalizeTaskId } from '../engine/task/id.js';
+import { simplifyTaskBundle } from '../engine/task/simplify.js';
 import { getProjectRoot } from '../utils/fs.js';
-import { createV2Runtime } from '../v2/runtime.js';
-import { normalizeTaskId } from '../v2/task/id.js';
-import { simplifyTaskBundle } from '../v2/task/simplify.js';
 
 const taskSimplifyCommand = new Command('simplify')
   .description('Convert a full task bundle to the simple context.md/state.json layout')
@@ -13,7 +13,7 @@ const taskSimplifyCommand = new Command('simplify')
   .action(
     async (taskId: string, options: { dryRun?: boolean; keepLegacy?: boolean; json?: boolean }) => {
       const projectRoot = await getProjectRoot();
-      const runtime = await createV2Runtime(projectRoot);
+      const runtime = await createRuntime(projectRoot);
       const report = await simplifyTaskBundle(runtime.paths, {
         taskId: normalizeTaskId(taskId),
         dryRun: options.dryRun,

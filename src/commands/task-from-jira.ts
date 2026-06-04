@@ -1,14 +1,14 @@
 import { Command } from 'commander';
-import { getProjectRoot } from '../utils/fs.js';
-import { importJiraTaskBundle } from '../v2/integrations/jira/from-jira.js';
-import type { JiraTaskImportResult } from '../v2/integrations/jira/types.js';
-import { createV2Runtime } from '../v2/runtime.js';
-import { setActiveTask } from '../v2/task/registry.js';
+import { importJiraTaskBundle } from '../engine/integrations/jira/from-jira.js';
+import type { JiraTaskImportResult } from '../engine/integrations/jira/types.js';
+import { createRuntime } from '../engine/runtime.js';
+import { setActiveTask } from '../engine/task/registry.js';
 import {
   bindCodexSessionToTask,
   codexSessionBindingRelativePath,
   resolveCodexSessionIdFromEnv,
-} from '../v2/task/session-binding.js';
+} from '../engine/task/session-binding.js';
+import { getProjectRoot } from '../utils/fs.js';
 
 interface TaskFromJiraOptions {
   attachments?: boolean;
@@ -21,7 +21,7 @@ interface TaskFromJiraOptions {
 }
 
 async function activateImportedTask(
-  runtime: Awaited<ReturnType<typeof createV2Runtime>>,
+  runtime: Awaited<ReturnType<typeof createRuntime>>,
   result: JiraTaskImportResult,
   options: TaskFromJiraOptions,
 ): Promise<JiraTaskImportResult> {
@@ -72,7 +72,7 @@ const taskFromJiraCommand = new Command('from-jira')
   .option('--json', 'print JSON output')
   .action(async (issueKey: string, options: TaskFromJiraOptions) => {
     const projectRoot = await getProjectRoot();
-    const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+    const runtime = await createRuntime(projectRoot, { createIfMissing: false });
     const imported = await importJiraTaskBundle(
       projectRoot,
       runtime.config,

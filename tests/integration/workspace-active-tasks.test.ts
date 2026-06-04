@@ -1,17 +1,17 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { writeConfigV2 } from '../../src/v2/config/load.js';
-import { createDefaultConfigV2 } from '../../src/v2/config/migrate.js';
-import { createV2Runtime } from '../../src/v2/runtime.js';
-import { readTaskRegistry } from '../../src/v2/task/registry.js';
-import { bootstrapWorkspace } from '../../src/v2/workspace/bootstrap.js';
-import { initGitRepo, makeTempProject } from '../helpers/v2-fixtures.js';
+import { writeConfig } from '../../src/engine/config/load.js';
+import { createDefaultConfig } from '../../src/engine/config/migrate.js';
+import { createRuntime } from '../../src/engine/runtime.js';
+import { readTaskRegistry } from '../../src/engine/task/registry.js';
+import { bootstrapWorkspace } from '../../src/engine/workspace/bootstrap.js';
+import { initGitRepo, makeTempProject } from '../helpers/test-fixtures.js';
 
 async function prepareLegacyActiveTaskWorkspace() {
   const projectRoot = await makeTempProject();
   await initGitRepo(projectRoot, 'feature/ABC-123');
-  const baseConfig = await createDefaultConfigV2(projectRoot);
+  const baseConfig = await createDefaultConfig(projectRoot);
   const config = {
     ...baseConfig,
     workspace: {
@@ -24,9 +24,9 @@ async function prepareLegacyActiveTaskWorkspace() {
     },
   };
 
-  await writeConfigV2(projectRoot, config);
+  await writeConfig(projectRoot, config);
   await bootstrapWorkspace(projectRoot, config);
-  const runtime = await createV2Runtime(projectRoot, { createIfMissing: false });
+  const runtime = await createRuntime(projectRoot, { createIfMissing: false });
   await runtime.createTaskBundle({
     taskId: 'ABC-123',
     title: 'Legacy active storage',
@@ -61,7 +61,7 @@ describe('active task workspace storage', () => {
     ).resolves.toBeUndefined();
     await expect(fs.access(path.join(projectRoot, '.claude/tasks/index.json'))).rejects.toThrow();
 
-    const migratedRuntime = await createV2Runtime(projectRoot, { createIfMissing: false });
+    const migratedRuntime = await createRuntime(projectRoot, { createIfMissing: false });
     const resolved = await migratedRuntime.resolveActiveTask({ preferRegistryActive: false });
     const registry = await readTaskRegistry(migratedRuntime.paths);
 

@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runSetup } from '../../src/commands/setup.js';
-import { createV2Runtime } from '../../src/v2/runtime.js';
+import { createRuntime } from '../../src/engine/runtime.js';
 import {
   checkoutBranch,
   checkoutNewBranch,
@@ -10,14 +10,14 @@ import {
   initGitRepo,
   makeTempProject,
   mergeBranch,
-} from '../helpers/v2-fixtures.js';
+} from '../helpers/test-fixtures.js';
 
-describe('v2 bundle lifecycle integration', () => {
+describe('bundle lifecycle integration', () => {
   it('creates and loads a task bundle', async () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     const createResult = await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -48,7 +48,7 @@ describe('v2 bundle lifecycle integration', () => {
       'add auth module',
     );
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -84,7 +84,7 @@ describe('v2 bundle lifecycle integration', () => {
     const projectRoot = await makeTempProject();
     await initGitRepo(projectRoot);
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',
@@ -120,7 +120,7 @@ describe('v2 bundle lifecycle integration', () => {
       'feature work',
     );
     await runSetup({}, projectRoot);
-    const runtime = await createV2Runtime(projectRoot);
+    const runtime = await createRuntime(projectRoot);
 
     await runtime.createTaskBundle({
       taskId: 'ABC-123',

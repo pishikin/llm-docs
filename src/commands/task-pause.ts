@@ -1,13 +1,13 @@
 import { Command } from 'commander';
-import { getProjectRoot } from '../utils/fs.js';
-import { createV2Runtime } from '../v2/runtime.js';
-import { activeTaskFileRelativePath } from '../v2/task/active.js';
-import { setActiveTask } from '../v2/task/registry.js';
+import { createRuntime } from '../engine/runtime.js';
+import { activeTaskFileRelativePath } from '../engine/task/active.js';
+import { setActiveTask } from '../engine/task/registry.js';
 import {
   codexSessionBindingRelativePath,
   pauseCodexSessionBinding,
   resolveCodexSessionIdFromEnv,
-} from '../v2/task/session-binding.js';
+} from '../engine/task/session-binding.js';
+import { getProjectRoot } from '../utils/fs.js';
 
 export interface TaskPauseOptions {
   session?: boolean;
@@ -27,7 +27,7 @@ export interface TaskPauseResult {
 
 export async function pauseTaskContext(options: TaskPauseOptions): Promise<TaskPauseResult> {
   const projectRoot = await getProjectRoot();
-  const runtime = await createV2Runtime(projectRoot);
+  const runtime = await createRuntime(projectRoot);
   const sessionId = options.sessionId ?? resolveCodexSessionIdFromEnv();
   const useSessionScope =
     options.session || !!options.sessionId || (!options.workspace && !!sessionId);

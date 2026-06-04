@@ -2,14 +2,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Command } from 'commander';
 import { simpleGit } from 'simple-git';
-import { ensureDir, fileExists } from '../utils/fs.js';
-import { loadOrMigrateConfig } from '../v2/config/load.js';
+import { loadOrMigrateConfig } from '../engine/config/load.js';
 import type {
   WorktreeCreateInput,
   WorktreeCreateReport,
   WorktreeSeedConflictPolicy,
-} from '../v2/types.js';
-import { applyWorktreeSeed, prepareWorktreeSeed } from '../v2/worktree/seed.js';
+} from '../engine/types.js';
+import { applyWorktreeSeed, prepareWorktreeSeed } from '../engine/worktree/seed.js';
+import { ensureDir, fileExists } from '../utils/fs.js';
 import { runSetup } from './setup.js';
 
 export interface WorktreeCreateCommandOptions {

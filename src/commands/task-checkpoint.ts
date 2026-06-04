@@ -1,12 +1,12 @@
 import { Command } from 'commander';
-import { getProjectRoot } from '../utils/fs.js';
-import { createV2Runtime } from '../v2/runtime.js';
-import { resolveCodexSessionIdFromEnv } from '../v2/task/session-binding.js';
+import { createRuntime } from '../engine/runtime.js';
+import { resolveCodexSessionIdFromEnv } from '../engine/task/session-binding.js';
 import type {
   CheckpointKind,
   SaveContextCheckpointInput,
   TaskQualityProfile,
-} from '../v2/types.js';
+} from '../engine/types.js';
+import { getProjectRoot } from '../utils/fs.js';
 
 function collect(value: string, previous: string[] = []): string[] {
   return [...previous, value];
@@ -77,7 +77,7 @@ const taskCheckpointCommand = new Command('checkpoint')
       },
     ) => {
       const projectRoot = await getProjectRoot();
-      const runtime = await createV2Runtime(projectRoot);
+      const runtime = await createRuntime(projectRoot);
       const sessionId = options.sessionId ?? resolveCodexSessionIdFromEnv();
       const resolvedTaskId =
         taskId ??
