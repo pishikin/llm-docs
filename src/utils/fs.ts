@@ -94,6 +94,14 @@ export async function copyFileSafe(sourcePath: string, destinationPath: string):
   await fs.copyFile(sourcePath, destinationPath);
 }
 
+export async function copyPathSafe(sourcePath: string, destinationPath: string): Promise<void> {
+  await ensureDir(path.dirname(destinationPath));
+  await fs.cp(sourcePath, destinationPath, {
+    force: true,
+    recursive: true,
+  });
+}
+
 export async function tryHardlinkOrCopy(
   sourcePath: string,
   destinationPath: string,

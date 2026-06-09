@@ -958,9 +958,6 @@ async function checkTaskStorageLayoutHealth(
 
 function hasUnsafeSeedPattern(pattern: string): boolean {
   return (
-    pattern.includes('.claude/docs/archive') ||
-    pattern.includes('.claude/docs/archieve') ||
-    pattern.includes('.claude/docs/tasks') ||
     pattern.includes('.claude/tasks') ||
     pattern.includes('.claude/.llm-docs') ||
     pattern.includes('*.har') ||

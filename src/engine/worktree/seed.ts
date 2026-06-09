@@ -1,8 +1,9 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { simpleGit } from 'simple-git';
 import {
-  copyFileSafe,
+  copyPathSafe,
   ensureDir,
   normalizeRelativePath,
   readFileSafe,
@@ -11,6 +12,7 @@ import {
 import type {
   WorktreeSeedConflictPolicy,
   WorktreeSeedFileOperation,
+  WorktreeSeedFileSource,
   WorktreeSeedInput,
   WorktreeSeedManifest,
   WorktreeSeedReport,
@@ -20,16 +22,23 @@ const SEED_MANIFEST_RELATIVE_PATH = '.claude/docs/seed.manifest.json';
 const SEED_RESULT_RELATIVE_PATH = '.claude/llm-docs.seed-manifest.json';
 
 const LLM_DOCS_SKILL_DIRS = ['llm-docs'];
-const SAFETY_EXCLUDE_PATTERNS = [
-  '.claude/docs/archive/**',
-  '.claude/docs/archieve/**',
-  '.claude/docs/research/legacy/**',
-  '.claude/docs/tasks/**',
+const CURATED_SAFETY_EXCLUDE_PATTERNS = [
   '.claude/tasks/**',
   '.claude/.llm-docs/**',
   '**/*.har',
   '**/*.log',
   '**/.DS_Store',
+];
+const IGNORED_SNAPSHOT_EXCLUDE_PATTERNS = [
+  '.agents/**',
+  '.claude/**',
+  '.codex/**',
+  '.cursor/**',
+  'AGENTS.md',
+  'CLAUDE.md',
+  'llmdocs.config.json',
+  '.mcp.json',
+  '.mcp.generated.json',
 ];
 
 export const DEFAULT_WORKTREE_SEED_MANIFEST: WorktreeSeedManifest = {
@@ -66,13 +75,23 @@ export const DEFAULT_WORKTREE_SEED_MANIFEST: WorktreeSeedManifest = {
         ...LLM_DOCS_SKILL_DIRS.map((dir) => `.agents/skills/${dir}/**`),
         ...LLM_DOCS_SKILL_DIRS.map((dir) => `.claude/skills/${dir}/**`),
       ],
-      exclude: SAFETY_EXCLUDE_PATTERNS,
+      exclude: [],
     },
   },
 };
 
 interface PreviousSeedManifest {
   files?: WorktreeSeedFileOperation[];
+}
+
+interface PathStatsSummary {
+  kind: 'file' | 'directory' | 'symlink' | 'other';
+  size: number;
+}
+
+interface PlannedSeedFile {
+  path: string;
+  source: WorktreeSeedFileSource;
 }
 
 function normalizeRoot(value: string): string {
@@ -143,12 +162,19 @@ function isExcluded(relativePath: string, patterns: string[]): boolean {
   return patterns.some((pattern) => matchesPattern(relativePath, pattern));
 }
 
-async function pathStats(
-  filePath: string,
-): Promise<{ isFile: boolean; isDirectory: boolean } | null> {
+async function pathStats(filePath: string): Promise<PathStatsSummary | null> {
   try {
-    const stats = await fs.stat(filePath);
-    return { isFile: stats.isFile(), isDirectory: stats.isDirectory() };
+    const stats = await fs.lstat(filePath);
+    return {
+      kind: stats.isDirectory()
+        ? 'directory'
+        : stats.isFile()
+          ? 'file'
+          : stats.isSymbolicLink()
+            ? 'symlink'
+            : 'other',
+      size: stats.size,
+    };
   } catch {
     return null;
   }
@@ -163,7 +189,7 @@ async function listFilesRecursive(root: string, relativeDir = '.'): Promise<stri
     const relativePath = normalizeRelativePath(path.join(relativeDir, entry.name));
     if (entry.isDirectory()) {
       files.push(...(await listFilesRecursive(root, relativePath)));
-    } else if (entry.isFile()) {
+    } else if (entry.isFile() || entry.isSymbolicLink()) {
       files.push(relativePath);
     }
   }
@@ -180,10 +206,10 @@ async function expandInclude(sourceRoot: string, includePattern: string): Promis
     if (!stats) {
       return [];
     }
-    if (stats.isFile) {
+    if (stats.kind === 'file' || stats.kind === 'symlink') {
       return [pattern];
     }
-    if (stats.isDirectory) {
+    if (stats.kind === 'directory') {
       return listFilesRecursive(sourceRoot, pattern);
     }
     return [];
@@ -192,7 +218,7 @@ async function expandInclude(sourceRoot: string, includePattern: string): Promis
   if (pattern.endsWith('/**')) {
     const directory = pattern.slice(0, -3);
     const stats = await pathStats(path.join(sourceRoot, directory));
-    return stats?.isDirectory ? listFilesRecursive(sourceRoot, directory) : [];
+    return stats?.kind === 'directory' ? listFilesRecursive(sourceRoot, directory) : [];
   }
 
   const allFiles = await listFilesRecursive(sourceRoot);
@@ -233,7 +259,7 @@ async function readSeedManifest(sourceRoot: string): Promise<{
   throw new Error('Invalid worktree seed manifest shape. Expected schemaVersion 1 and profiles.');
 }
 
-async function collectSeedFiles(
+async function collectCuratedSeedFiles(
   sourceRoot: string,
   profile: string,
   manifest: WorktreeSeedManifest,
@@ -250,8 +276,69 @@ async function collectSeedFiles(
     }
   }
 
-  const excludePatterns = [...SAFETY_EXCLUDE_PATTERNS, ...(seedProfile.exclude ?? [])];
+  const excludePatterns = [...CURATED_SAFETY_EXCLUDE_PATTERNS, ...(seedProfile.exclude ?? [])];
   return [...files].filter((filePath) => !isExcluded(filePath, excludePatterns)).sort();
+}
+
+function parseNullSeparatedList(content: string): string[] {
+  return content.split('\0').filter((value) => value.length > 0);
+}
+
+async function collectIgnoredSnapshotFiles(sourceRoot: string): Promise<string[]> {
+  const rawEntries = parseNullSeparatedList(
+    await simpleGit(sourceRoot).raw([
+      'ls-files',
+      '--others',
+      '--ignored',
+      '--exclude-standard',
+      '--directory',
+      '--no-empty-directory',
+      '-z',
+    ]),
+  );
+  const files = new Set<string>();
+
+  for (const rawEntry of rawEntries) {
+    const relativePath = normalizeRelativePath(rawEntry.replace(/\/$/, ''));
+    if (isExcluded(relativePath, IGNORED_SNAPSHOT_EXCLUDE_PATTERNS)) {
+      continue;
+    }
+
+    const stats = await pathStats(path.join(sourceRoot, relativePath));
+    if (!stats) {
+      continue;
+    }
+
+    if (stats.kind === 'directory') {
+      for (const nestedPath of await listFilesRecursive(sourceRoot, relativePath)) {
+        if (!isExcluded(nestedPath, IGNORED_SNAPSHOT_EXCLUDE_PATTERNS)) {
+          files.add(nestedPath);
+        }
+      }
+      continue;
+    }
+
+    if (stats.kind === 'file' || stats.kind === 'symlink') {
+      files.add(relativePath);
+    }
+  }
+
+  return [...files].sort();
+}
+
+function mergePlannedSeedFiles(curatedFiles: string[], ignoredFiles: string[]): PlannedSeedFile[] {
+  const merged = new Map<string, WorktreeSeedFileSource>();
+
+  for (const filePath of ignoredFiles) {
+    merged.set(filePath, 'ignored');
+  }
+  for (const filePath of curatedFiles) {
+    merged.set(filePath, 'curated');
+  }
+
+  return [...merged.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([filePath, source]) => ({ path: filePath, source }));
 }
 
 function candidatePathFor(destinationRoot: string, relativePath: string): string {
@@ -275,34 +362,52 @@ async function isManagedByPreviousSeed(
 async function buildOperation(
   sourceRoot: string,
   destinationRoot: string,
-  relativePath: string,
+  file: PlannedSeedFile,
   conflictPolicy: WorktreeSeedConflictPolicy,
 ): Promise<WorktreeSeedFileOperation> {
+  const relativePath = file.path;
   const sourcePath = path.join(sourceRoot, relativePath);
   const destinationPath = path.join(destinationRoot, relativePath);
   const [sourceStats, destinationStats] = await Promise.all([
-    fs.stat(sourcePath),
+    fs.lstat(sourcePath),
     pathStats(destinationPath),
   ]);
-  const sourceHash = await sha256File(sourcePath);
 
   if (!destinationStats) {
-    return { path: relativePath, action: 'copy', size: sourceStats.size, sha256: sourceHash };
+    return {
+      source: file.source,
+      path: relativePath,
+      action: 'copy',
+      size: sourceStats.size,
+    };
   }
 
-  if (destinationStats.isFile) {
-    const destinationHash = await sha256File(destinationPath);
-    if (destinationHash === sourceHash) {
-      return { path: relativePath, action: 'skip', size: sourceStats.size, sha256: sourceHash };
+  if (destinationStats.kind !== 'directory' && destinationStats.size === sourceStats.size) {
+    try {
+      const [sourceHash, destinationHash] = await Promise.all([
+        sha256File(sourcePath),
+        sha256File(destinationPath),
+      ]);
+      if (destinationHash === sourceHash) {
+        return {
+          source: file.source,
+          path: relativePath,
+          action: 'skip',
+          size: sourceStats.size,
+          sha256: sourceHash,
+        };
+      }
+    } catch {
+      // Fall through to conflict handling when content comparison is not possible.
     }
   }
 
   if (conflictPolicy === 'fail') {
     return {
+      source: file.source,
       path: relativePath,
       action: 'conflict',
       size: sourceStats.size,
-      sha256: sourceHash,
       message: `Destination already has a different file: ${relativePath}`,
     };
   }
@@ -311,15 +416,20 @@ async function buildOperation(
     conflictPolicy === 'overwrite-managed' &&
     (await isManagedByPreviousSeed(destinationRoot, relativePath))
   ) {
-    return { path: relativePath, action: 'copy', size: sourceStats.size, sha256: sourceHash };
+    return {
+      source: file.source,
+      path: relativePath,
+      action: 'copy',
+      size: sourceStats.size,
+    };
   }
 
   const candidatePath = candidatePathFor(destinationRoot, relativePath);
   return {
+    source: file.source,
     path: relativePath,
     action: 'candidate',
     size: sourceStats.size,
-    sha256: sourceHash,
     candidatePath: normalizeRelativePath(path.relative(destinationRoot, candidatePath)),
     message: `Destination is user-owned; wrote a seed candidate for ${relativePath}.`,
   };
@@ -327,6 +437,8 @@ async function buildOperation(
 
 function summarize(files: WorktreeSeedFileOperation[]): WorktreeSeedReport['summary'] {
   return {
+    curatedFiles: files.filter((file) => file.source === 'curated').length,
+    ignoredFiles: files.filter((file) => file.source === 'ignored').length,
     copied: files.filter((file) => file.action === 'copy').length,
     skipped: files.filter((file) => file.action === 'skip').length,
     candidates: files.filter((file) => file.action === 'candidate').length,
@@ -340,12 +452,12 @@ async function applySeedOperation(
   operation: WorktreeSeedFileOperation,
 ): Promise<void> {
   if (operation.action === 'copy') {
-    await copyFileSafe(
+    await copyPathSafe(
       path.join(sourceRoot, operation.path),
       path.join(destinationRoot, operation.path),
     );
   } else if (operation.action === 'candidate' && operation.candidatePath) {
-    await copyFileSafe(
+    await copyPathSafe(
       path.join(sourceRoot, operation.path),
       path.join(destinationRoot, operation.candidatePath),
     );
@@ -379,12 +491,16 @@ export async function prepareWorktreeSeed(input: WorktreeSeedInput): Promise<Wor
   const profile = input.profile ?? 'default';
   const conflictPolicy = input.conflictPolicy ?? 'candidate';
   const { manifest, path: sourceManifestPath } = await readSeedManifest(sourceRoot);
-  const seedFiles = await collectSeedFiles(sourceRoot, profile, manifest);
-  const files = await Promise.all(
-    seedFiles.map((relativePath) =>
-      buildOperation(sourceRoot, destinationRoot, relativePath, conflictPolicy),
-    ),
-  );
+  const [curatedFiles, ignoredFiles] = await Promise.all([
+    collectCuratedSeedFiles(sourceRoot, profile, manifest),
+    collectIgnoredSnapshotFiles(sourceRoot),
+  ]);
+  const plannedFiles = mergePlannedSeedFiles(curatedFiles, ignoredFiles);
+  const files: WorktreeSeedFileOperation[] = [];
+
+  for (const file of plannedFiles) {
+    files.push(await buildOperation(sourceRoot, destinationRoot, file, conflictPolicy));
+  }
 
   return {
     schemaVersion: 1,

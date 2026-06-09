@@ -57,6 +57,8 @@ function formatSeedHuman(report: WorktreeSeedReport): void {
   console.log(`- Source: ${report.sourceRoot}`);
   console.log(`- Destination: ${report.destinationRoot}`);
   console.log(`- Profile: ${report.profile}`);
+  console.log(`- Curated files: ${report.summary.curatedFiles}`);
+  console.log(`- Ignored snapshot files: ${report.summary.ignoredFiles}`);
   console.log(`- Copied: ${report.summary.copied}`);
   console.log(`- Skipped: ${report.summary.skipped}`);
   console.log(`- Candidates: ${report.summary.candidates}`);
@@ -84,7 +86,9 @@ export async function runWorktreeSeed(
 }
 
 const worktreeSeedCommand = new Command('seed')
-  .description('Copy curated llm-docs context from the main worktree into the current worktree')
+  .description(
+    'Copy curated llm-docs context plus ignored local project files from the main worktree',
+  )
   .requiredOption('--from <path>', 'main worktree to seed from')
   .option('--profile <profile>', 'seed profile from .claude/docs/seed.manifest.json', 'default')
   .option('--conflict <policy>', 'fail, candidate, or overwrite-managed', 'candidate')

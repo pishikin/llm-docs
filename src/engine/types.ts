@@ -752,6 +752,7 @@ export interface ActiveTasksMigrationReport {
 }
 
 export type WorktreeSeedConflictPolicy = 'fail' | 'candidate' | 'overwrite-managed';
+export type WorktreeSeedFileSource = 'curated' | 'ignored';
 
 export interface WorktreeSeedProfile {
   include: string[];
@@ -772,6 +773,7 @@ export interface WorktreeSeedInput {
 }
 
 export interface WorktreeSeedFileOperation {
+  source: WorktreeSeedFileSource;
   path: string;
   action: 'copy' | 'skip' | 'candidate' | 'conflict';
   size?: number;
@@ -791,6 +793,8 @@ export interface WorktreeSeedReport {
   manifestPath: string | null;
   files: WorktreeSeedFileOperation[];
   summary: {
+    curatedFiles: number;
+    ignoredFiles: number;
     copied: number;
     skipped: number;
     candidates: number;

@@ -26,8 +26,22 @@ async function createMainWithLocalDocs(): Promise<string> {
   await writeProjectFile(mainRoot, '.claude/docs/tasks/ABC-1/task.md', '# Published task\n');
   await writeProjectFile(mainRoot, '.claude/docs/research/legacy/old.md', '# Legacy research\n');
   await writeProjectFile(mainRoot, '.claude/docs/architecture/network.log', 'large log\n');
+  await writeProjectFile(mainRoot, '.claude/.llm-docs/tasks/ACTIVE/context.md', '# Active task\n');
+  await writeProjectFile(mainRoot, '.claude/tasks/LEGACY/context.md', '# Legacy active task\n');
 
   return mainRoot;
+}
+
+async function addIgnoredRuntimeSnapshot(mainRoot: string): Promise<void> {
+  await writeProjectFile(mainRoot, '.gitignore', '.env\nnode_modules/\n.claude/local/\n');
+  await simpleGit(mainRoot).add('.gitignore');
+  await simpleGit(mainRoot).commit('add ignore rules');
+
+  await writeProjectFile(mainRoot, '.env', 'API_KEY=main-runtime-value\n');
+  await writeProjectFile(mainRoot, 'node_modules/example/index.js', 'module.exports = 1;\n');
+  await fs.mkdir(path.join(mainRoot, 'node_modules/.bin'), { recursive: true });
+  await fs.symlink('../example/index.js', path.join(mainRoot, 'node_modules/.bin/example-tool'));
+  await writeProjectFile(mainRoot, '.claude/local/private.md', '# Private local note\n');
 }
 
 describe('worktree seed command', () => {
@@ -55,6 +69,37 @@ describe('worktree seed command', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('copies ignored local project files while keeping local agent state out', async () => {
+    const mainRoot = await createMainWithLocalDocs();
+    await addIgnoredRuntimeSnapshot(mainRoot);
+    const worktreeRoot = await createGitWorktree(mainRoot, 'feature/seed-ignored-runtime');
+
+    const report = await runWorktreeSeed({ from: mainRoot }, worktreeRoot);
+
+    expect(report.summary.ignoredFiles).toBeGreaterThan(0);
+    expect(report.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'ignored',
+          path: '.env',
+          action: 'copy',
+        }),
+        expect.objectContaining({
+          source: 'ignored',
+          path: 'node_modules/example/index.js',
+          action: 'copy',
+        }),
+      ]),
+    );
+    await expect(fs.access(path.join(worktreeRoot, '.env'))).resolves.toBeUndefined();
+    await expect(
+      fs.access(path.join(worktreeRoot, 'node_modules/example/index.js')),
+    ).resolves.toBeUndefined();
+    const toolSymlink = await fs.lstat(path.join(worktreeRoot, 'node_modules/.bin/example-tool'));
+    expect(toolSymlink.isSymbolicLink()).toBe(true);
+    await expect(fs.access(path.join(worktreeRoot, '.claude/local/private.md'))).rejects.toThrow();
+  });
+
   it('keeps archive, published tasks, legacy research, and logs out of the seed', async () => {
     const mainRoot = await createMainWithLocalDocs();
     const worktreeRoot = await createGitWorktree(mainRoot, 'feature/seed-excludes');
@@ -70,9 +115,9 @@ describe('worktree seed command', () => {
     expect(plannedPaths).not.toContain('.claude/docs/architecture/network.log');
   });
 
-  it('applies safety excludes even when a custom manifest includes unsafe paths', async () => {
+  it('allows custom manifests to include archived or published docs but still blocks active task state', async () => {
     const mainRoot = await createMainWithLocalDocs();
-    const worktreeRoot = await createGitWorktree(mainRoot, 'feature/seed-custom-safety');
+    const worktreeRoot = await createGitWorktree(mainRoot, 'feature/seed-custom-manifest');
     await writeProjectFile(
       mainRoot,
       '.claude/docs/seed.manifest.json',
@@ -85,6 +130,8 @@ describe('worktree seed command', () => {
                 '.claude/docs/architecture/**',
                 '.claude/docs/archive/**',
                 '.claude/docs/tasks/**',
+                '.claude/.llm-docs/**',
+                '.claude/tasks/**',
               ],
             },
           },
@@ -98,8 +145,11 @@ describe('worktree seed command', () => {
     const plannedPaths = report.files.map((file) => file.path);
 
     expect(plannedPaths).toContain('.claude/docs/architecture/overview.md');
-    expect(plannedPaths).not.toContain('.claude/docs/archive/old.md');
-    expect(plannedPaths).not.toContain('.claude/docs/tasks/ABC-1/task.md');
+    expect(plannedPaths).toContain('.claude/docs/archive/old.md');
+    expect(plannedPaths).toContain('.claude/docs/tasks/ABC-1/task.md');
+    expect(plannedPaths).not.toContain('.claude/.llm-docs/tasks/ACTIVE/context.md');
+    expect(plannedPaths).not.toContain('.claude/tasks/LEGACY/context.md');
+    expect(plannedPaths).not.toContain('.claude/docs/architecture/network.log');
   });
 
   it('writes candidates instead of overwriting user-owned files by default', async () => {
@@ -125,11 +175,38 @@ describe('worktree seed command', () => {
       fs.access(path.join(worktreeRoot, 'AGENTS.llmdocs.seed.candidate.md')),
     ).resolves.toBeUndefined();
   });
+
+  it('writes candidates for ignored runtime files instead of overwriting local values', async () => {
+    const mainRoot = await createMainWithLocalDocs();
+    await addIgnoredRuntimeSnapshot(mainRoot);
+    const worktreeRoot = await createGitWorktree(mainRoot, 'feature/seed-ignored-candidate');
+    await writeProjectFile(worktreeRoot, '.env', 'API_KEY=worktree-runtime-value\n');
+
+    const report = await runWorktreeSeed({ from: mainRoot }, worktreeRoot);
+
+    expect(report.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'ignored',
+          path: '.env',
+          action: 'candidate',
+          candidatePath: '.env.llmdocs.seed.candidate',
+        }),
+      ]),
+    );
+    await expect(fs.readFile(path.join(worktreeRoot, '.env'), 'utf-8')).resolves.toBe(
+      'API_KEY=worktree-runtime-value\n',
+    );
+    await expect(
+      fs.readFile(path.join(worktreeRoot, '.env.llmdocs.seed.candidate'), 'utf-8'),
+    ).resolves.toBe('API_KEY=main-runtime-value\n');
+  });
 });
 
 describe('worktree create command', () => {
-  it('creates a git worktree and seeds rules plus architecture docs', async () => {
+  it('creates a git worktree and seeds curated docs plus ignored runtime files', async () => {
     const mainRoot = await createMainWithLocalDocs();
+    await addIgnoredRuntimeSnapshot(mainRoot);
     const targetPath = await makeTempProject('llmdocs-created-worktree-');
 
     const report = await runWorktreeCreate(
@@ -152,8 +229,13 @@ describe('worktree create command', () => {
     await expect(
       fs.access(path.join(targetPath, '.claude/docs/architecture/overview.md')),
     ).resolves.toBeUndefined();
+    await expect(fs.access(path.join(targetPath, '.env'))).resolves.toBeUndefined();
+    await expect(
+      fs.access(path.join(targetPath, 'node_modules/example/index.js')),
+    ).resolves.toBeUndefined();
     await expect(fs.access(path.join(targetPath, 'llmdocs.config.json'))).resolves.toBeUndefined();
     await expect(fs.access(path.join(targetPath, '.claude/docs/archive/old.md'))).rejects.toThrow();
+    await expect(fs.access(path.join(targetPath, '.claude/local/private.md'))).rejects.toThrow();
   });
 
   it('reuses an existing local branch when creating the worktree', async () => {

@@ -134,9 +134,16 @@ llm-docs worktree create ABC-123
 llm-docs worktree seed
 ```
 
+`worktree create` checks out the tracked project state first, then seeds two
+extra layers from the main worktree:
+
+- curated `llm-docs` context from the selected seed profile;
+- ignored local project files such as `.env` or `node_modules`, while leaving
+  local agent runtime state out.
+
 Use the task worktree for implementation. Keep the active task bundle there
-while the work is moving. When the task is ready, publish the task docs back into
-the main worktree:
+while the work is moving. When the task is ready, publish the task docs back
+into the main worktree:
 
 ```bash
 llm-docs task publish ABC-123 --dry-run

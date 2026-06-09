@@ -90,6 +90,8 @@ function formatCreateHuman(report: WorktreeCreateReport): void {
   console.log(`- Target: ${report.targetPath}`);
   console.log(`- Branch: ${report.branch}`);
   console.log(`- Base: ${report.base}`);
+  console.log(`- Curated seed files: ${report.seed.summary.curatedFiles}`);
+  console.log(`- Ignored snapshot files: ${report.seed.summary.ignoredFiles}`);
   console.log(`- Seed copied: ${report.seed.summary.copied}`);
   console.log(`- Seed skipped: ${report.seed.summary.skipped}`);
   console.log(`- Seed candidates: ${report.seed.summary.candidates}`);
@@ -156,7 +158,7 @@ export async function runWorktreeCreate(
 }
 
 const worktreeCreateCommand = new Command('create')
-  .description('Create a git worktree and seed it with curated llm-docs context')
+  .description('Create a git worktree and seed it with curated context plus ignored local files')
   .argument('<taskId>', 'task id and default branch name')
   .option('--main <path>', 'main worktree path; defaults to the current git root')
   .option('--target <path>', 'target worktree path')
